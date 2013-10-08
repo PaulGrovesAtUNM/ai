@@ -1,0 +1,1 @@
+./Debug/main.o ./Debug/perceptron.o ./Debug/neuron.o ./Debug/simpleNeuron.o ./Debug/neuralNetwork.o ./Debug/lmsPerceptron.o
