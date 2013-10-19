@@ -14,6 +14,7 @@
     <File Name="simpleNeuron.c"/>
     <File Name="neuralNetwork.c"/>
     <File Name="lmsPerceptron.c"/>
+    <File Name="backPropagation.c"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Headers">
     <File Name="neuron.h"/>
@@ -21,6 +22,7 @@
     <File Name="simpleNeuron.h"/>
     <File Name="neuralNetwork.h"/>
     <File Name="lmsPerceptron.h"/>
+    <File Name="backPropagation.h"/>
   </VirtualDirectory>
   <Settings Type="Executable">
     <GlobalSettings>

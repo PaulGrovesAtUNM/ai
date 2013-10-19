@@ -2,25 +2,39 @@
 
 
 #include "neuralNetwork.h"
+#include "backPropagation.h"
 
 void testNN(NeuralNetwork *myNN)
 {
-	float dataSet[4][3] = {{0,0,0},{0,1,1},{1,0,1},{1,1,0}}; //In, In, Out
+	float dataSet[4][3] = {{-.5,-.5,.1},{-.5,.5,.9},{.5,-.5,.9},{.5,.5,.1}}; //In, In, Out
+	int x1, x2;
+	float o;
 	float output;	
 	int i,j;
 	
+	BackProp *bp = BPInit(myNN);
+	
 	printf("Testing...\n");
-	for (j = 0; j < 100; j++ )
-		for (i = 0; i < 4; i++)
+	for (j = 0; j < 1000; j++ )
+		for (i = 0; i < 1000; i++)
 		{
-			NNSetDesiredOutputs(myNN, &dataSet[i][2]);
+			x1 = rand() % 2;
+			x2 = rand() % 2;
+			o = (float)(x1 ^ x2);	
+					
+			NNSetInput(myNN, 0, x1);
+			NNSetInput(myNN, 1, x2);
 			NNForwardPropagation(myNN);
 			NNGetOutputs(myNN, &output);
-			printf("%i: %f xor %f = %f\n", j, dataSet[i][0], dataSet[i][1], output);
-			NNBackPropagation(myNN);
+			
+			BPApply(bp, 0, &o);
+			
+			printf("%i: %i xor %i = %f[%f]\n", j, x1, x2, output, o);
 		}
-	printf("Done!\n");
-	getchar();
+	printf("Testing Done!\n");
+	NNPrint(myNN);	
+	
+	BPDelete(bp);
 }
 	
 	
@@ -29,20 +43,18 @@ int main(int argc, char **argv)
 {
 	// We need simple neurons for both the input and output layers.
 	//  They are not "true" neurons, but they simplify some of the coding.
-	int layerArray[] = {2, 2, 1, 1}; //2 inputs, 2 lms Perceptrons, 1 lms percep. 1 output.
+	int layerArray[] = {3, 2, 1, 1}; //2 inputs, 2 lms Perceptrons, 1 lms percep. 1 output, all with shared bias.
 	// Maybe "hide" the Simple neurons in NN?
-	
-	float output = -1000;
+	float desired = .5;
 	
 	NeuralNetwork *myNN = CreateNN(layerArray, 4);
 	NNCreateSimpleInputLayer(myNN);
 	NNCreateSimpleOutputLayer(myNN);
-		
 	
 	// Add our layer 1 & 2 LMS's...
-	NNCreateNeuronInLayer(myNN, 1, LMSPERCEPTRON);
-	NNCreateNeuronInLayer(myNN, 1, LMSPERCEPTRON);
-	NNCreateNeuronInLayer(myNN, 2, LMSPERCEPTRON);
+	NNCreateNeuronInLayer(myNN, "Hidden 1.1", 1, LMSPERCEPTRON);
+	NNCreateNeuronInLayer(myNN, "Hidden 1.2", 1, LMSPERCEPTRON);
+	NNCreateNeuronInLayer(myNN, "Hidden 2.1", 2, LMSPERCEPTRON);
 	
 	// Wire inputs to layer 1 neurons...
 	// Wire 1st Input Neuron to Layer 1 Neurons
@@ -62,8 +74,36 @@ int main(int argc, char **argv)
 	//    X     > 3 -- o
 	// i2 --2 -- 
 	
-	printf("Links created!\n");	
-	getchar();
+	// Wire the bias(s)
+	NNLink(myNN, 0,2, 1, 0);
+	NNLink(myNN, 0,2, 1, 1);
+	NNLink(myNN, 0,2, 2, 0);
+	NNSetInput(myNN, 2, 1); //Hardware to 1, bias.
+
+	/* // From Paper
+	NNSetInput(myNN,0, .35);
+	NNSetInput(myNN,1, .9);
+	NNSetWeight(myNN, 1,0, 0, .1);
+	NNSetWeight(myNN, 1,0, 1, .8);
+	NNSetWeight(myNN, 1,1, 0, .4);
+	NNSetWeight(myNN, 1,1, 1, .6);
+	NNSetWeight(myNN, 2,0, 0, .3);
+	NNSetWeight(myNN, 2,0, 1, .9);	
+	
+	NNForwardPropagation(myNN);
+	// Check the output.
+	NNPrint(myNN);
+	
+	// Back Propagate
+	printf("Propagating...\n\r\n\r");
+	BackProp *bp = BPInit(myNN);
+	BPApply(bp, 0, &desired);
+	NNPrint(myNN);
+	getchar(); */
+	
+	
+	
+	printf("Links created!\n");		
 	
 	// Set the desired outputs.
 	// Exclusive Or:
@@ -73,7 +113,7 @@ int main(int argc, char **argv)
 	// 1 xor 1 = 0
 	
 	testNN(myNN);
-	
+	NNPrint(myNN);
 		
 	DeleteNN(myNN);
 	
@@ -99,9 +139,7 @@ int main(int argc, char **argv)
 	//    pointers to Neuron.c functions if any calls from the create functions
 	//    leave pointers NULL.
 	
-	printf("All neurons deleted.\n");
-	printf("hello world\n");
-	
+	printf("All neurons deleted.\n");		
 	getchar();
 	return 0;
 }

@@ -17,16 +17,24 @@ typedef struct NN NeuralNetwork;
 
 NeuralNetwork *CreateNN(int layerCounts[], int nLayers);
 void DeleteNN(NeuralNetwork *net);
-Neuron *NNCreateNeuronInLayer(NeuralNetwork *net, int layer, NEURONS neuronType);
+Neuron *NNCreateNeuronInLayer(NeuralNetwork *net, char *name, int layer, NEURONS neuronType);
 void NNSetInput(NeuralNetwork *net, int index, float x);
 
 void NNGetOutputs(NeuralNetwork *net, float Buffer[]);
+float NNGetOutput(NeuralNetwork *net, int layerIndex, int nodeIndex);
 void NNCreateSimpleInputLayer(NeuralNetwork *net);
+void NNCreateSimpleOutputLayer(NeuralNetwork *net);
 void NNLink(NeuralNetwork *net, int fromLayer, int fromIndex, int toLayer, int toIndex);
 
 void NNForwardPropagation(NeuralNetwork *net);
 
-void NNBackPropagation(NeuralNetwork *net);
-void NNSetDesiredOutputs(NeuralNetwork *net, float desired[]); //Sets the desired outputs on the output layer.
+Neuron *NNGetNeuron(NeuralNetwork *net, int layerIndex, int nodeIndex);
+int NNGetLayerCount(NeuralNetwork *net);
+int NNGetNeuronCount(NeuralNetwork *net, int layerIndex);
+
+void NNSetWeight(NeuralNetwork *net, int layer, int node, int inputIndex, float w);
+float NNGetWeight(NeuralNetwork *net, int layer, int node, int inputIndex);
+
+void NNPrint(NeuralNetwork *net);
 
 #endif

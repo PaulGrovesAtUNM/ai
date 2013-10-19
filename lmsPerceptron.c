@@ -6,7 +6,6 @@
 #include "neuron.h"
 
 float lmsPerceptronPhi(float v);
-float lmsPercPhiPrime(float y);
 
 void lmsPerceptronFP(Neuron *n)
 {
@@ -22,17 +21,12 @@ void lmsPerceptronFP(Neuron *n)
 		
 	n->v = v;
 	n->y = lmsPerceptronPhi(n->v);
-	n->phiPrime = lmsPercPhiPrime(n->y);
+	n->phiPrime = (n->y) * (1.0 - (n->y));
 }
 
 float lmsPerceptronPhi(float v) // Acitivation function for the Perceptron.
 {	
 	return 1.0/(1.0 + exp(-v)); //Sigmoid function
-}
-
-float lmsPercPhiPrime(float y)
-{
-	return y * (1.0 - y); // yay for simple!
 }
 	
 Neuron *lmsPerceptronCreate(Neuron *n)

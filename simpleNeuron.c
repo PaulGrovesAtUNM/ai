@@ -13,8 +13,11 @@ struct SN_Private {
 void SimpleNeuron_ForwardProp(Neuron *n)
 {
 	// Set the output to the input.
-	// Notify all of our listeners on the output.	
-	n->y = n->v;	
+	// If we don't have any input neurons the just set it to v.
+	if (n->nInputs == 0)
+		n->y = n->v;	
+	else
+		n->y = GetOutput(n->inputNeurons[0]);			
 }
 
 void SimpleNeuron_BackProp(Neuron *n)
@@ -27,7 +30,7 @@ void SimpleNeuron_BackProp(Neuron *n)
 	if (n->inputNeurons)
 	{
 		printf("SimpleNeuron: BackPropagating. desired: %f  Actual: %f\n", priv->desired, n->y);	
-		BackPropagateDelta(n->inputNeurons[0], priv->desired - n->y);
+//		BackPropagateDelta(n->inputNeurons[0], priv->desired - n->y);
 	}
 }
 
@@ -73,5 +76,6 @@ Neuron *SimpleNeuron_create(Neuron *n)
 	n->addInput = &SimpleNeuron_addInput;	
 	n->destroy = &SimpleNeuron_destroy;
 	n->data = malloc(sizeof(struct SN_Private));
+	n->phiPrime = 1;
 	return n;
 }

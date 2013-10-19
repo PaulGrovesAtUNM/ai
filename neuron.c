@@ -5,8 +5,9 @@
 #include "neuron.h"
 #include "simpleNeuron.h"
 #include "perceptron.h"
+#include "lmsPerceptron.h"
 
-Neuron *NewNeuron(NEURONS neuronType)
+Neuron *NewNeuron(NEURONS neuronType, char *name)
 {
 	// Create the base data
 	Neuron *n = (Neuron *)malloc(sizeof(Neuron)); //We don't hold neurons, just pointers to them.
@@ -17,10 +18,10 @@ Neuron *NewNeuron(NEURONS neuronType)
 	n->forwardProp = NULL;
 	
 	n->backPropagate = NULL;
-	n->accInputDeltas = NULL;
+	// n->accInputDeltas = NULL;
 	
 	n->getLocalActivation = NULL;
-	n->getOutput = NULL;	
+	n->getOutput = NULL;		
 	n->inputNeurons = NULL;
 	n->weights = NULL;	
 	n->nInputs = 0;
@@ -30,6 +31,9 @@ Neuron *NewNeuron(NEURONS neuronType)
 	n->y = 0;
 	
 	n->type = neuronType;	
+	n->layer = -1;
+	n->index = -1;
+	strcpy(n->name, name);	
 	
 	switch (neuronType)
 	{
@@ -86,13 +90,29 @@ Neuron *GetInputNeuron(Neuron *current, int iIndex)
 	return current->inputNeurons[iIndex];		
 }
 
+Neuron **GetInputNeurons(Neuron *n)
+{
+	return n->inputNeurons;
+}
+
+int GetInputNeuronCount(Neuron *n)
+{
+	return n->nInputs;
+}
+
+float *GetInputWeights(Neuron *n)
+{
+	return n->weights;
+}
+
 // For over-rides that want to call parent...
 void _addInput(Neuron *n, Neuron *nodeToAdd)
 {
 	n->inputNeurons = (Neuron **)realloc( n->inputNeurons, sizeof(Neuron *) * (n->nInputs + 1));
 	n->weights = (float *)realloc( n->weights, sizeof(float) * (n->nInputs + 1));	
 	n->inputNeurons[n->nInputs] = nodeToAdd;
-	n->nInputs++;
+	n->weights[n->nInputs] = 1; //Init weight to 1.
+	n->nInputs++;	
 }
 
 void AddInput(Neuron *current, Neuron *nodeToAdd)
@@ -105,6 +125,7 @@ void AddInput(Neuron *current, Neuron *nodeToAdd)
 	// Call any "child" methods as well.
 }
 
+/*
 // Back Propagation
 //  If we are an output node:
 	//  newWi = oldWi + eta * localDelta * yi
@@ -149,8 +170,52 @@ void BackPropagateDelta(Neuron *n, float delta)
 		n->deltaSum += delta;				
 	}
 }
+*/
+float GetDeltaPhi(Neuron *n)
+{
+	return n->phiPrime;
+}
 
 void SetEta(Neuron *n, float eta)
 {
 	n->eta = eta;
+}
+
+float GetEta(Neuron *n)
+{
+	return n->eta;
+}
+
+int GetLayerIndex(Neuron *n)
+{
+	return n->layer;
+}
+
+int GetNeuronIndex(Neuron *n)
+{
+	return n->index;
+}
+
+void SetWeight(Neuron *n, int inputIndex, float w)
+{
+	n->weights[inputIndex] = w;
+}
+
+float GetWeight(Neuron *n, int inputIndex)
+{
+	return n->weights[inputIndex];
+}
+
+void PrintNeuron(Neuron *n)
+{
+	int i;
+	
+	printf("Neuron Name: %s [%f]", n->name, n->y);
+	printf("	Weights:");
+	for (i = 0; i < n->nInputs; i++)
+		printf("%f,", n->weights[i]);
+	printf("\n	Inputs From:");
+	for (i = 0; i < n->nInputs; i++)
+		printf("%s,", n->inputNeurons[i]->name);
+	printf("\n");
 }

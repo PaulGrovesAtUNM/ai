@@ -13,7 +13,7 @@ CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=Paul
-Date                   :=10/07/2013
+Date                   :=10/14/2013
 CodeLitePath           :="/home/paul/.codelite"
 LinkerName             :=gcc
 SharedObjectLinkerName :=gcc -shared -fPIC
@@ -58,7 +58,7 @@ CFLAGS   :=  -g -O0 -Wall $(Preprocessors)
 ## User defined environment variables
 ##
 CodeLiteDir:=/usr/share/codelite
-Objects0=$(IntermediateDirectory)/main$(ObjectSuffix) $(IntermediateDirectory)/perceptron$(ObjectSuffix) $(IntermediateDirectory)/neuron$(ObjectSuffix) $(IntermediateDirectory)/simpleNeuron$(ObjectSuffix) $(IntermediateDirectory)/neuralNetwork$(ObjectSuffix) $(IntermediateDirectory)/lmsPerceptron$(ObjectSuffix) 
+Objects0=$(IntermediateDirectory)/main$(ObjectSuffix) $(IntermediateDirectory)/perceptron$(ObjectSuffix) $(IntermediateDirectory)/neuron$(ObjectSuffix) $(IntermediateDirectory)/simpleNeuron$(ObjectSuffix) $(IntermediateDirectory)/neuralNetwork$(ObjectSuffix) $(IntermediateDirectory)/lmsPerceptron$(ObjectSuffix) $(IntermediateDirectory)/backPropagation$(ObjectSuffix) 
 
 
 
@@ -133,6 +133,14 @@ $(IntermediateDirectory)/lmsPerceptron$(DependSuffix): lmsPerceptron.c
 $(IntermediateDirectory)/lmsPerceptron$(PreprocessSuffix): lmsPerceptron.c
 	@$(CC) $(CFLAGS) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/lmsPerceptron$(PreprocessSuffix) "lmsPerceptron.c"
 
+$(IntermediateDirectory)/backPropagation$(ObjectSuffix): backPropagation.c $(IntermediateDirectory)/backPropagation$(DependSuffix)
+	$(CC) $(SourceSwitch) "/home/paul/Projects/ai/ai/backPropagation.c" $(CFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/backPropagation$(ObjectSuffix) $(IncludePath)
+$(IntermediateDirectory)/backPropagation$(DependSuffix): backPropagation.c
+	@$(CC) $(CFLAGS) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/backPropagation$(ObjectSuffix) -MF$(IntermediateDirectory)/backPropagation$(DependSuffix) -MM "backPropagation.c"
+
+$(IntermediateDirectory)/backPropagation$(PreprocessSuffix): backPropagation.c
+	@$(CC) $(CFLAGS) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/backPropagation$(PreprocessSuffix) "backPropagation.c"
+
 
 -include $(IntermediateDirectory)/*$(DependSuffix)
 ##
@@ -157,6 +165,9 @@ clean:
 	$(RM) $(IntermediateDirectory)/lmsPerceptron$(ObjectSuffix)
 	$(RM) $(IntermediateDirectory)/lmsPerceptron$(DependSuffix)
 	$(RM) $(IntermediateDirectory)/lmsPerceptron$(PreprocessSuffix)
+	$(RM) $(IntermediateDirectory)/backPropagation$(ObjectSuffix)
+	$(RM) $(IntermediateDirectory)/backPropagation$(DependSuffix)
+	$(RM) $(IntermediateDirectory)/backPropagation$(PreprocessSuffix)
 	$(RM) $(OutputFile)
 	$(RM) ".build-debug/ai"
 

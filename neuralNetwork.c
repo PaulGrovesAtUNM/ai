@@ -50,10 +50,10 @@ void DeleteNN(NeuralNetwork *net)
 	free(net); // Delete Neural Network.			
 }
 
-Neuron *NNCreateNeuronInLayer(NeuralNetwork *net, int layer, NEURONS neuronType)
+Neuron *NNCreateNeuronInLayer(NeuralNetwork *net, char *name, int layer, NEURONS neuronType)
 {
 	int i;
-	Neuron *newNeuron = NewNeuron(neuronType);
+	Neuron *newNeuron = NewNeuron(neuronType, name);
 	
 	if ( layer > net->count )
 	{
@@ -67,6 +67,8 @@ Neuron *NNCreateNeuronInLayer(NeuralNetwork *net, int layer, NEURONS neuronType)
 		if ( net->Layers[layer]->Neurons[i] == NULL )
 		{
 			net->Layers[layer]->Neurons[i] = newNeuron;
+			newNeuron->layer = layer;
+			newNeuron->index = i;
 			return newNeuron;
 		}	
 	}
@@ -105,26 +107,22 @@ void NNForwardPropagation(NeuralNetwork *net)
 			ForwardPropogate(net->Layers[li]->Neurons[ni]);
 }
 
-void NNBackPropagation(NeuralNetwork *net)
-{
-	// Start at the back, move to the front.
-	int last = net->count - 1; //Last Layer
-	int li = 0; // Layer Index
-	int ni = 0; // Neuron Index
-	
-	for (li = net->count - 1; li > 0; li--) //Input layer doesn't really matter.
-		for (ni = 0; ni < net->Layers[li]->count; ni++)
-			BackPropagate(net->Layers[li]->Neurons[ni]);
-}
-
 // Creates all the neurons on the input layer, simple neurons.
 void NNCreateSimpleInputLayer(NeuralNetwork *net)
 {
 	int i;
+	char name[50];
+	Neuron *n;
+	
 	//add Neurons to our input layer, which is always just SIMPLE neurons
 	for (i = 0; i < net->Layers[0]->count; i++)
-		net->Layers[0]->Neurons[i] = NewNeuron(SIMPLE);
-
+	{
+		sprintf(name, "X%i",i);	
+		n = NewNeuron(SIMPLE, name);
+		n->layer = 0;
+		n->index = i;
+		net->Layers[0]->Neurons[i] = n;		
+	}
 }
 
 // Creates all the neurons on the last layer, Simple Neurons
@@ -132,21 +130,33 @@ void NNCreateSimpleOutputLayer(NeuralNetwork *net)
 {
 	int i;
 	int lastI = net->count - 1;
+	char name[50];
+	Neuron *n;
+	
 	//add Neurons to our output layer, which is always just SIMPLE neurons
 	for (i = 0; i < net->Layers[lastI]->count; i++)
-		net->Layers[lastI]->Neurons[i] = NewNeuron(SIMPLE);
+	{
+		sprintf(name, "Y%i",i);
+		n = NewNeuron(SIMPLE, name);
+		n->layer = lastI;
+		n->index = i;
+		net->Layers[lastI]->Neurons[i] = n;
+	}
 }
 
-// Sets the desired outputs at the output layer.
-//  Note: This routine expects one entry PER OUTPUT NEURON
-void NNSetDesiredOutputs(NeuralNetwork *net, float desired[])
+Neuron *NNGetNeuron(NeuralNetwork *net, int layerIndex, int nodeIndex)
 {
-	int ni; // Neuron index
-	int ll = net->count - 1; //Last layer	
-	
-	// We can check to insure the final neuron is a Simle Neuron by testing the type...
-	for (ni = 0; ni < net->Layers[ll]->count; ni++)
-		SimpleNeuronSetDesired(net->Layers[ll]->Neurons[ni], desired[ni]);
+	return net->Layers[layerIndex]->Neurons[nodeIndex];
+}
+
+int NNGetLayerCount(NeuralNetwork *net)
+{
+	return net->count;
+}
+
+int NNGetNeuronCount(NeuralNetwork *net, int layerIndex)
+{
+	return net->Layers[layerIndex]->count;
 }
 
 void NNGetOutputs(NeuralNetwork *net, float Buffer[])
@@ -160,3 +170,34 @@ void NNGetOutputs(NeuralNetwork *net, float Buffer[])
 	for (ni = 0; ni < net->Layers[outi]->count; ni++)
 		Buffer[ni] = GetOutput(net->Layers[outi]->Neurons[ni]);		
 }
+
+float NNGetOutput(NeuralNetwork *net, int layerIndex, int nodeIndex)
+{
+	return GetOutput(net->Layers[layerIndex]->Neurons[nodeIndex]);
+}
+
+void NNSetWeight(NeuralNetwork *net, int layer, int node, int inputIndex, float w)
+{
+	SetWeight(net->Layers[layer]->Neurons[node], inputIndex, w);
+}
+
+float NNGetWeight(NeuralNetwork *net, int layer, int node, int inputIndex)
+{
+	return GetWeight(net->Layers[layer]->Neurons[node], inputIndex);
+}
+
+void NNPrint(NeuralNetwork *net)
+{
+	int li, ni;
+	
+	for (li = 0; li < net->count; li++)
+	{
+		printf("Layer %i:\n", li);
+		for (ni = 0; ni < net->Layers[li]->count; ni++)
+		{
+			printf("	Node %i:\n", ni);
+			PrintNeuron(net->Layers[li]->Neurons[ni]);			
+		}
+	}
+}
+

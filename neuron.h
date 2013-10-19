@@ -10,7 +10,7 @@ struct _Neuron
 
 	void (*forwardProp)(struct _Neuron *current);
 	float (*getLocalActivation)(struct _Neuron *current);
-	float (*getOutput)(struct _Neuron *current);
+	float (*getOutput)(struct _Neuron *current);	
 
 	void (*destroy)(struct _Neuron *current);
 
@@ -34,13 +34,17 @@ struct _Neuron
 	float phiPrime; // derivative of phi wrt v at v, computed at forward prop
 	
 	NEURONS type; //Type of neuron this is.
+	int layer; //Layer and Index into the layer, this neuron's position.
+	int index;
+	char name[50];
+	
 	
 	void *data; // Private data for Neuron
 }; //Generic Neuron
 
 typedef struct _Neuron Neuron;
 
-Neuron *NewNeuron(NEURONS neuronType);
+Neuron *NewNeuron(NEURONS neuronType, char *name);
 void DeleteNeuron(Neuron *current);
 
 void ForwardPropogate(Neuron *current);
@@ -52,7 +56,22 @@ Neuron *GetInputNeuron(Neuron *current, int iIndex);
 void _addInput(Neuron *n, Neuron *nodeToAdd);
 void AddInput(Neuron *current, Neuron *nodeToAdd);
 
-void BackPropagateDelta(Neuron *n, float delta);
 void SetEta(Neuron *n, float eta);
+float GetDeltaPhi(Neuron *n);
+
+float *GetInputWeights(Neuron *n);
+Neuron **GetInputNeurons(Neuron *n);
+int GetInputNeuronCount(Neuron *n);
+
+int GetLayerIndex(Neuron *n);
+int GetNeuronIndex(Neuron *n);
+
+void SetWeight(Neuron *n, int inputIndex, float w);
+float GetWeight(Neuron *n, int inputIndex);
+
+float GetEta(Neuron *n);
+
+void PrintNeuron(Neuron *n);
+
 
 #endif
