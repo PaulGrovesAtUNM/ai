@@ -1,38 +1,95 @@
+#include <math.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 
 #include "neuralNetwork.h"
 #include "backPropagation.h"
 
-void testNN(NeuralNetwork *myNN)
+void testNN(NeuralNetwork *myNN, FILE *fp, float alpha)
 {
-	float dataSet[4][3] = {{-.5,-.5,.1},{-.5,.5,.9},{.5,-.5,.9},{.5,.5,.1}}; //In, In, Out
-	int x1, x2;
+	int x1 = 0, x2 = 0;
 	float o;
-	float output;	
-	int i,j;
+	float output;		
+	int epoch = 0;
+	float rmsTestingError, rmsTrainingError;
+	int testingClassErrors = 1000, trainingClassErrors = 0;
 	
 	BackProp *bp = BPInit(myNN);
 	
 	printf("Testing...\n");
-	for (j = 0; j < 1000; j++ )
-		for (i = 0; i < 1000; i++)
+	
+	while ( testingClassErrors != 0)
+	{	
+		rmsTestingError = 0;
+		rmsTrainingError = 0;
+		testingClassErrors = 0;
+		trainingClassErrors = 0;
+		
+		// training
+		for (x1 = 0; x1 < 2; x1++)
 		{
-			x1 = rand() % 2;
-			x2 = rand() % 2;
-			o = (float)(x1 ^ x2);	
+			for (x2 = 0; x2 < 2; x2++)
+			{
+										
+				o = (float)(x1 ^ x2);	
+				if (o == 1)
+					o = 1.7;
+				else
+					o = -1.7;
 					
-			NNSetInput(myNN, 0, x1);
-			NNSetInput(myNN, 1, x2);
-			NNForwardPropagation(myNN);
-			NNGetOutputs(myNN, &output);
-			
-			BPApply(bp, 0, &o);
-			
-			printf("%i: %i xor %i = %f[%f]\n", j, x1, x2, output, o);
+				NNSetInput(myNN, 0, x1);
+				NNSetInput(myNN, 1, x2);
+				NNForwardPropagation(myNN);
+				NNGetOutputs(myNN, &output);
+				
+				rmsTrainingError += (o - output)*(o - output);
+				if ( (x1 ^ x2) == 1 && output <= 0)
+					trainingClassErrors++;
+				if ( (x1 ^ x2) == 0 && output > 0)
+					trainingClassErrors++;
+				
+				BPApply(bp, alpha, &o);
+			}
 		}
-	printf("Testing Done!\n");
+		
+		//Testing
+		for (x1 = 0; x1 < 2; x1++)
+		{
+			for (x2 = 0; x2 < 2; x2++)
+			{
+				NNSetInput(myNN, 0, x1);
+				NNSetInput(myNN, 1, x2);
+				NNForwardPropagation(myNN);
+				NNGetOutputs(myNN, &output);
+				if ( (x1 ^ x2) == 0 )
+				{
+					if (output > 0)
+						testingClassErrors++;
+					rmsTestingError += (-1.7 - output) * (-1.7 - output);
+				}
+				if ( (x1 ^ x2) == 1)
+				{
+					if (output <= 0)
+						testingClassErrors++;
+					rmsTestingError += (1.7 - output) * (1.7 - output);
+				}
+			}
+		}
+		
+		rmsTrainingError = sqrt(rmsTrainingError);
+		rmsTestingError = sqrt(rmsTestingError);		
+		
+		fprintf(fp, "%i,%i,%i,%f,%f\n", epoch,trainingClassErrors, testingClassErrors, rmsTrainingError, rmsTestingError);
+		printf("Epoch: %i	Class Errors:%i		RMS Error: %f\n", epoch, testingClassErrors, rmsTestingError);
+		epoch++;
+	}
+	
+	printf("Testing Done!\n");	
 	NNPrint(myNN);	
+	
+	printf("Saving...\n");
+	NNSave(myNN, "TestSave.txt");
 	
 	BPDelete(bp);
 }
@@ -44,8 +101,21 @@ int main(int argc, char **argv)
 	// We need simple neurons for both the input and output layers.
 	//  They are not "true" neurons, but they simplify some of the coding.
 	int layerArray[] = {3, 2, 1, 1}; //2 inputs, 2 lms Perceptrons, 1 lms percep. 1 output, all with shared bias.
-	// Maybe "hide" the Simple neurons in NN?
-	float desired = .5;
+	
+	// Maybe "hide" the Simple neurons in NN?	
+
+	FILE *fp;
+	float alpha = 1;
+	
+	if (!(fp = fopen("XOR_TEST_10.txt", "w")))
+	{
+		printf("Couldn't open file.\n");
+		return -1;
+	}
+	
+	fprintf(fp,"XOR Test with 2 Hidden, 1 Output Layers, Eta: .0001, Non Random, Momentum, Alpha = %f.\n", alpha);
+	fprintf(fp, "Desired Outputs: 1.7 for 1, -1.7 for 0.\n");
+	fprintf(fp, "Epoch,Training Classification Errors, Testing Classification Errors, Training RMS Error, Testing RMS Error\n");
 	
 	NeuralNetwork *myNN = CreateNN(layerArray, 4);
 	NNCreateSimpleInputLayer(myNN);
@@ -78,32 +148,30 @@ int main(int argc, char **argv)
 	NNLink(myNN, 0,2, 1, 0);
 	NNLink(myNN, 0,2, 1, 1);
 	NNLink(myNN, 0,2, 2, 0);
-	NNSetInput(myNN, 2, 1); //Hardware to 1, bias.
+	
+	NNSetInput(myNN, 2, 1); //Hardware to 1, bias.	
 
-	/* // From Paper
+	 // From Paper
 	NNSetInput(myNN,0, .35);
 	NNSetInput(myNN,1, .9);
 	NNSetWeight(myNN, 1,0, 0, .1);
 	NNSetWeight(myNN, 1,0, 1, .8);
+	NNSetWeight(myNN, 1,0, 2, .5); // Bias Weight
+	
 	NNSetWeight(myNN, 1,1, 0, .4);
 	NNSetWeight(myNN, 1,1, 1, .6);
+	NNSetWeight(myNN, 1,1, 2, .5); // Bias Weight
+	
 	NNSetWeight(myNN, 2,0, 0, .3);
 	NNSetWeight(myNN, 2,0, 1, .9);	
+	NNSetWeight(myNN, 2,0, 2, .5); // Bias Weight
+		
 	
-	NNForwardPropagation(myNN);
-	// Check the output.
-	NNPrint(myNN);
-	
-	// Back Propagate
-	printf("Propagating...\n\r\n\r");
-	BackProp *bp = BPInit(myNN);
-	BPApply(bp, 0, &desired);
-	NNPrint(myNN);
-	getchar(); */
+	//getchar(); 
 	
 	
 	
-	printf("Links created!\n");		
+	printf("Links created, weights set!\n");		
 	
 	// Set the desired outputs.
 	// Exclusive Or:
@@ -112,10 +180,11 @@ int main(int argc, char **argv)
 	// 1 xor 0 = 1
 	// 1 xor 1 = 0
 	
-	testNN(myNN);
+	testNN(myNN, fp,alpha);
 	NNPrint(myNN);
 		
 	DeleteNN(myNN);
+	fclose(fp);
 	
 	//Neuron *myPerceptron = NewNeuron(PERCEPTRON);
 	//Neuron *myInputNeuron = NewNeuron(INPUT);

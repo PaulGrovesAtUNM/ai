@@ -20,13 +20,13 @@ void lmsPerceptronFP(Neuron *n)
 		v += n->weights[i] * GetOutput(n->inputNeurons[i]);
 		
 	n->v = v;
-	n->y = lmsPerceptronPhi(n->v);
-	n->phiPrime = (n->y) * (1.0 - (n->y));
+	n->y = 1.7159 * tanh( .66666 * v ); // Haykin pg 181
+	n->phiPrime = ( .66666 / 1.7159 ) * ( 1.7159 - n->y ) * ( 1.7159 + n->y ); // Haykin pg 169
 }
 
 float lmsPerceptronPhi(float v) // Acitivation function for the Perceptron.
 {	
-	return 1.0/(1.0 + exp(-v)); //Sigmoid function
+	return 1.7159 * tanh(.666666 * v); //Hyperbolic Tan, pg 181 Haykin
 }
 	
 Neuron *lmsPerceptronCreate(Neuron *n)
@@ -40,6 +40,5 @@ Neuron *lmsPerceptronCreate(Neuron *n)
 
 	return n;
 }
-
 
 

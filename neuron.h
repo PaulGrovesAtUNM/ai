@@ -10,16 +10,14 @@ struct _Neuron
 
 	void (*forwardProp)(struct _Neuron *current);
 	float (*getLocalActivation)(struct _Neuron *current);
-	float (*getOutput)(struct _Neuron *current);	
-
-	void (*destroy)(struct _Neuron *current);
-
+	float (*getOutput)(struct _Neuron *current);		
 	void (*addInput)(struct _Neuron *current, struct _Neuron *node);
 	
-	// Over ridable methods for back propogation
-	void (*backPropagate)(struct _Neuron *n);
-	void (*accInputDeltas)(struct _Neuron *n, float delta);
+	void (*saveNeuron)(struct _Neuron *n, FILE *fp);
 	
+	void (*destroy)(struct _Neuron *current);
+	
+	// Instance Data	
 	struct _Neuron **inputNeurons; // Array of Pointers to Neurons providing input.
 	float *weights;					// One weight for each input;	
 	int nInputs; // Number of inputs
@@ -28,17 +26,16 @@ struct _Neuron
 	float y; // Output -- phi(v)
 	
 	
-	// For Back Propagation	
-	float deltaSum; //The sum of the delta's from neurons using my output.
+	// For Back Propagation		
 	float eta; // Learning rate
 	float phiPrime; // derivative of phi wrt v at v, computed at forward prop
+	
 	
 	NEURONS type; //Type of neuron this is.
 	int layer; //Layer and Index into the layer, this neuron's position.
 	int index;
 	char name[50];
-	
-	
+		
 	void *data; // Private data for Neuron
 }; //Generic Neuron
 
@@ -53,8 +50,8 @@ float GetLocalActivation(Neuron *current);
 float GetOutput(Neuron *current);
 Neuron *GetInputNeuron(Neuron *current, int iIndex);
 
-void _addInput(Neuron *n, Neuron *nodeToAdd);
-void AddInput(Neuron *current, Neuron *nodeToAdd);
+void NAddInput_base(Neuron *n, Neuron *nodeToAdd);
+void NAddInput(Neuron *current, Neuron *nodeToAdd);
 
 void SetEta(Neuron *n, float eta);
 float GetDeltaPhi(Neuron *n);
@@ -72,6 +69,10 @@ float GetWeight(Neuron *n, int inputIndex);
 float GetEta(Neuron *n);
 
 void PrintNeuron(Neuron *n);
+char *GetName(Neuron *n);
+
+void NSave(Neuron *n, FILE *fp);
+void NSave_base(Neuron *n, FILE *fp);
 
 
 #endif

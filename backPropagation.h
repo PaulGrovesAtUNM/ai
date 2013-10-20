@@ -4,12 +4,16 @@
 #include "neuralNetwork.h"
 
 typedef struct {
-	float **deltas; //Layer / Index of deltas.	
+	float **deltas; //Layer / Index of local deltas.
+	float **deltaW; //Layer / Index of weight changes (for momentum)
 	NeuralNetwork *net;
 } BackProp;
 
 BackProp *BPInit(NeuralNetwork *net);
-void BPReset(BackProp *bp);
+
+void BPResetLocalDeltas(BackProp *bp);
+void BPResetWeightDeltas(BackProp *bp);
+
 void BPApply(BackProp *bp, float alpha, float *desired);
 void BPDelete(BackProp *bp);
 void BackPropagate(NeuralNetwork *net, float *desired);

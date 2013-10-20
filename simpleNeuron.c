@@ -20,20 +20,6 @@ void SimpleNeuron_ForwardProp(Neuron *n)
 		n->y = GetOutput(n->inputNeurons[0]);			
 }
 
-void SimpleNeuron_BackProp(Neuron *n)
-{
-	// We back propagate our error.
-	struct SN_Private *priv = (struct SN_Private *)n->data;
-	
-	// We only ever have a single input neuron.
-	//  Our "local delta" is simply the error.	
-	if (n->inputNeurons)
-	{
-		printf("SimpleNeuron: BackPropagating. desired: %f  Actual: %f\n", priv->desired, n->y);	
-//		BackPropagateDelta(n->inputNeurons[0], priv->desired - n->y);
-	}
-}
-
 void SimpleNeuron_addInput(Neuron *n, Neuron *node)
 {
 	if (n->inputNeurons) 
@@ -42,7 +28,7 @@ void SimpleNeuron_addInput(Neuron *n, Neuron *node)
 		return; // We already have an input neuron...
 	}
 	
-	_addInput(n, node);
+	NAddInput_base(n, node);
 }
 
 
@@ -67,14 +53,24 @@ void SimpleNeuron_destroy(Neuron *n)
 	free(n->data);
 }
 
+void SimpleNeuron_save(Neuron *n, FILE *fp)
+{
+	//Simple Neurons are at the edge.
+	//  Their input should be saved (in case we're a bias neuron)
+	// Call our base save method first.
+	NSave_base(n, fp);
+	//Now save our input. We're the only one that does this.
+	fprintf(fp, "		CURRENT INPUT VALUE: %0.9f\n", n->v); 
+}
+
 Neuron *SimpleNeuron_create(Neuron *n)
 {
 	
 	n->create = &SimpleNeuron_create;
 	n->forwardProp = &SimpleNeuron_ForwardProp;
-	n->backPropagate = &SimpleNeuron_BackProp;
 	n->addInput = &SimpleNeuron_addInput;	
 	n->destroy = &SimpleNeuron_destroy;
+	n->saveNeuron = &SimpleNeuron_save;
 	n->data = malloc(sizeof(struct SN_Private));
 	n->phiPrime = 1;
 	return n;

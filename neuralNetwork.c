@@ -81,7 +81,7 @@ Neuron *NNCreateNeuronInLayer(NeuralNetwork *net, char *name, int layer, NEURONS
 
 void NNLink(NeuralNetwork *net, int fromLayer, int fromIndex, int toLayer, int toIndex)
 {
-	AddInput(net->Layers[toLayer]->Neurons[toIndex], net->Layers[fromLayer]->Neurons[fromIndex]);
+	NAddInput(net->Layers[toLayer]->Neurons[toIndex], net->Layers[fromLayer]->Neurons[fromIndex]);
 }
 
 void NNSetInput(NeuralNetwork *net, int index, float x)
@@ -199,5 +199,34 @@ void NNPrint(NeuralNetwork *net)
 			PrintNeuron(net->Layers[li]->Neurons[ni]);			
 		}
 	}
+}
+
+/* Saves the Neural Network to disk. */
+void NNSave(NeuralNetwork *net, char *fname)
+{
+	//Things that need to be saved:
+	//  Structure of the network -- Inputs Nodes, Hidden, Output Nodes
+	//  The connections between nodes
+	//  The weights
+	//  The current inputs (Bias(s) are standard input nodes
+	
+	FILE *fp;
+	int li, ni;
+	
+	if ( !(fp = fopen(fname, "w")) )
+	{
+		perror("Error opening file for saving!\n");
+		return;		
+	}
+	
+	// First let's save our structure.
+	fprintf(fp, "LAYERS:%i\n", net->count);
+	for (li = 0; li < net->count; li++)
+	{
+		fprintf(fp, "LAYER %i\n", li);
+		for (ni = 0; ni < net->Layers[li]->count; ni++)
+			NSave( net->Layers[li]->Neurons[ni], fp );
+	}
+	fclose(fp);	
 }
 

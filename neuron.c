@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 
 #include "neuron.h"
@@ -11,21 +12,17 @@ Neuron *NewNeuron(NEURONS neuronType, char *name)
 {
 	// Create the base data
 	Neuron *n = (Neuron *)malloc(sizeof(Neuron)); //We don't hold neurons, just pointers to them.
-	n->addInput = NULL;
+	n->addInput = &NAddInput_base;
+	n->saveNeuron = &NSave_base;
 	n->create = NULL;
 	n->data = NULL;
 	n->destroy = NULL;
 	n->forwardProp = NULL;
-	
-	n->backPropagate = NULL;
-	// n->accInputDeltas = NULL;
-	
 	n->getLocalActivation = NULL;
 	n->getOutput = NULL;		
 	n->inputNeurons = NULL;
 	n->weights = NULL;	
 	n->nInputs = 0;
-	n->deltaSum = 0;
 	n->eta = .0001;
 	n->v = 0;
 	n->y = 0;
@@ -59,9 +56,7 @@ void DeleteNeuron(Neuron *current)
 }
 
 void ForwardPropogate(Neuron *current)
-{
-	current->deltaSum = 0; //Clear our delta sum for backprop.
-	
+{	
 	if ( current->forwardProp )
 		current->forwardProp(current);
 }
@@ -106,7 +101,7 @@ float *GetInputWeights(Neuron *n)
 }
 
 // For over-rides that want to call parent...
-void _addInput(Neuron *n, Neuron *nodeToAdd)
+void NAddInput_base(Neuron *n, Neuron *nodeToAdd)
 {
 	n->inputNeurons = (Neuron **)realloc( n->inputNeurons, sizeof(Neuron *) * (n->nInputs + 1));
 	n->weights = (float *)realloc( n->weights, sizeof(float) * (n->nInputs + 1));	
@@ -115,62 +110,11 @@ void _addInput(Neuron *n, Neuron *nodeToAdd)
 	n->nInputs++;	
 }
 
-void AddInput(Neuron *current, Neuron *nodeToAdd)
+void NAddInput(Neuron *n, Neuron *nodeToAdd)
 {
-	if ( current->addInput )
-		current->addInput(current, nodeToAdd);
-	else	
-		_addInput(current, nodeToAdd);	
-	
-	// Call any "child" methods as well.
+	n->addInput(n, nodeToAdd);		
 }
 
-/*
-// Back Propagation
-//  If we are an output node:
-	//  newWi = oldWi + eta * localDelta * yi
-	//  localDelta = phiPrime(v) * (desired - output)
-	//  e = di - yi
-void BackPropagate(Neuron *n)
-{	
-	if ( n->backPropagate )	
-		return n->backPropagate(n);
-		
-	float localDelta;	
-	float wn;
-	int i;
-		
-	// First update all neurons we're using as an input.
-	//  The accumulated sum represents the sum of delta's of all 
-	//   the higher layer neurons using our ouput.
-	//  Our Delta is phiPrime * this sum * the weight associated with an input.
-	//
-	localDelta = n->phiPrime * n->deltaSum;
-	
-	printf("BackProp ld:%f\n", localDelta);
-		
-	// Send out delta to our inputs and adjust our weights
-	for (i = 0; i < n->nInputs; i++)
-	{
-		wn = n->weights[i];
-		BackPropagateDelta(n->inputNeurons[i], localDelta * wn);		
-		n->weights[i] += wn;
-		printf("	Weight: %f\n",n->weights[i]);
-	}
-}
-
-void BackPropagateDelta(Neuron *n, float delta)
-{
-	printf("BackPropDelta\n");
-	if (n->accInputDeltas)
-		n->accInputDeltas(n, delta);
-	else
-	{
-		printf("BackProp ACC: %f\n", delta);	
-		n->deltaSum += delta;				
-	}
-}
-*/
 float GetDeltaPhi(Neuron *n)
 {
 	return n->phiPrime;
@@ -218,4 +162,32 @@ void PrintNeuron(Neuron *n)
 	for (i = 0; i < n->nInputs; i++)
 		printf("%s,", n->inputNeurons[i]->name);
 	printf("\n");
+}
+
+char *GetName(Neuron *n)
+{
+	return n->name;
+}
+
+void NSave(Neuron *n, FILE *fp)
+{
+	n->saveNeuron(n, fp);
+}
+
+void NSave_base(Neuron *n, FILE *fp)
+{
+	int i;
+	char *typeNames[] = {"SIMPLE", "PERCEPTRON", "LMS PERCEPTRON"}; //Human readable type names.
+	
+	if (n->type > 2)
+	{
+		perror("INVALID TYPE NAME IN NSAVE_BASE!\n");
+		return;
+	}
+	
+	fprintf(fp, "TYPE: %i	%s	NAME: %s\n", n->type, typeNames[n->type], n->name);		
+	fprintf(fp, "	LOCATION: %i,%i	ETA: %f\n", n->layer, n->index, n->eta);	
+	fprintf(fp, "	INPUTS: \n");
+	for (i = 0; i < n->nInputs; i++)	
+		fprintf(fp, "   		LOCATION: %i,%i		WEIGHT: %0.9f\n", GetLayerIndex(n->inputNeurons[i]), GetNeuronIndex(n->inputNeurons[i]), n->weights[i]);			
 }

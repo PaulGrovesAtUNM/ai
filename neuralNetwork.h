@@ -37,4 +37,6 @@ float NNGetWeight(NeuralNetwork *net, int layer, int node, int inputIndex);
 
 void NNPrint(NeuralNetwork *net);
 
+void NNSave(NeuralNetwork *net, char *fname);
+
 #endif
