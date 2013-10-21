@@ -32,6 +32,8 @@ Neuron *NNGetNeuron(NeuralNetwork *net, int layerIndex, int nodeIndex);
 int NNGetLayerCount(NeuralNetwork *net);
 int NNGetNeuronCount(NeuralNetwork *net, int layerIndex);
 
+void NNSetLayerEta(NeuralNetwork *net, int layerIndex, float eta0, float tao);
+
 void NNSetWeight(NeuralNetwork *net, int layer, int node, int inputIndex, float w);
 float NNGetWeight(NeuralNetwork *net, int layer, int node, int inputIndex);
 

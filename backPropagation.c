@@ -85,7 +85,7 @@ void ChangeDelta(BackProp *bp, int ni, int li, int layer, int node, float weight
 	BPPrintDeltas(bp);
 }
 
-void BPApply(BackProp *bp, float alpha, float *desired)
+void BPApply(BackProp *bp, float alpha,int epoch, float *desired)
 {			
 	NeuralNetwork *net = bp->net;
 	// Start with the output layer.
@@ -133,7 +133,7 @@ void BPApply(BackProp *bp, float alpha, float *desired)
 				//ChangeDelta(bp, li, ni, ili, ini, w[ii], localDelta);								
 				
 				// Adjust our intput weight --Wnew = Eta * local delta * input + momentum
-				deltaW = GetEta(n) * localDelta * yn + (alpha * bp->deltaW[ili][ini]); 
+				deltaW = NGetEta(n, epoch) * localDelta * yn + (alpha * bp->deltaW[ili][ini]); 
 				bp->deltaW[ili][ini] = deltaW;
 				w[ii] += deltaW; //W = delt * out + momentum
 				//printf("	[%i][%i] Weight %i Adjusted to %0.9f	LD: %f\n", n->layer, n->index, ii, w[ii], localDelta);

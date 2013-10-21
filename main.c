@@ -49,7 +49,7 @@ void testNN(NeuralNetwork *myNN, FILE *fp, float alpha)
 				if ( (x1 ^ x2) == 0 && output > 0)
 					trainingClassErrors++;
 				
-				BPApply(bp, alpha, &o);
+				BPApply(bp, alpha, epoch, &o);
 			}
 		}
 		
@@ -166,6 +166,8 @@ int main(int argc, char **argv)
 	NNSetWeight(myNN, 2,0, 1, .9);	
 	NNSetWeight(myNN, 2,0, 2, .5); // Bias Weight
 		
+	NNSetLayerEta(myNN, 1, .001, .001);
+	NNSetLayerEta(myNN, 2, .0001, .001);
 	
 	//getchar(); 
 	

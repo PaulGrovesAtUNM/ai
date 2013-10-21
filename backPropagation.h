@@ -14,8 +14,8 @@ BackProp *BPInit(NeuralNetwork *net);
 void BPResetLocalDeltas(BackProp *bp);
 void BPResetWeightDeltas(BackProp *bp);
 
-void BPApply(BackProp *bp, float alpha, float *desired);
+void BPApply(BackProp *bp, float alpha, int epoch, float *desired);
 void BPDelete(BackProp *bp);
-void BackPropagate(NeuralNetwork *net, float *desired);
+// void BackPropagate(NeuralNetwork *net, int epoch, float *desired);
 
 #endif 

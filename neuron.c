@@ -120,14 +120,15 @@ float GetDeltaPhi(Neuron *n)
 	return n->phiPrime;
 }
 
-void SetEta(Neuron *n, float eta)
-{
-	n->eta = eta;
+void NSetEta(Neuron *n,float eta0,float tao)
+{	
+	n->eta0 = eta0;
+	n->tao = tao;
 }
 
-float GetEta(Neuron *n)
+float NGetEta(Neuron *n, int epoch)
 {
-	return n->eta;
+	return (n->eta0 / (1 + (epoch / n->tao)));
 }
 
 int GetLayerIndex(Neuron *n)

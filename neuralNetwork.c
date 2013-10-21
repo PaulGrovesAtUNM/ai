@@ -201,6 +201,14 @@ void NNPrint(NeuralNetwork *net)
 	}
 }
 
+void NNSetLayerEta(NeuralNetwork *net, int layerIndex, float eta0, float tao)
+{
+	int ni;
+	
+	for (ni = 0; ni < net->Layers[layerIndex]->count; ni++)	
+		NSetEta(net->Layers[layerIndex]->Neurons[ni], eta0, tao);	
+}
+
 /* Saves the Neural Network to disk. */
 void NNSave(NeuralNetwork *net, char *fname)
 {

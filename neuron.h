@@ -28,6 +28,8 @@ struct _Neuron
 	
 	// For Back Propagation		
 	float eta; // Learning rate
+	float eta0;
+	float tao; //Haykin pg 135
 	float phiPrime; // derivative of phi wrt v at v, computed at forward prop
 	
 	
@@ -53,7 +55,7 @@ Neuron *GetInputNeuron(Neuron *current, int iIndex);
 void NAddInput_base(Neuron *n, Neuron *nodeToAdd);
 void NAddInput(Neuron *current, Neuron *nodeToAdd);
 
-void SetEta(Neuron *n, float eta);
+
 float GetDeltaPhi(Neuron *n);
 
 float *GetInputWeights(Neuron *n);
@@ -66,7 +68,8 @@ int GetNeuronIndex(Neuron *n);
 void SetWeight(Neuron *n, int inputIndex, float w);
 float GetWeight(Neuron *n, int inputIndex);
 
-float GetEta(Neuron *n);
+void NSetEta(Neuron *n, float eta0, float tao);
+float NGetEta(Neuron *n, int epoch);
 
 void PrintNeuron(Neuron *n);
 char *GetName(Neuron *n);
