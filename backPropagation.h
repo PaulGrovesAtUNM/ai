@@ -5,7 +5,7 @@
 
 typedef struct {
 	float **deltas; //Layer / Index of local deltas.
-	float **deltaW; //Layer / Index of weight changes (for momentum)
+	float ***deltaW; //Layer / Index / delta of weight changes (for momentum)
 	NeuralNetwork *net;
 } BackProp;
 

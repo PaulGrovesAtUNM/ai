@@ -29,6 +29,8 @@ NeuralNetwork *CreateNN(int *layerCounts, int nLayers)
 		net->Layers[i]->count = layerCounts[i];
 	}
 	
+	net->bias = NewNeuron(SIMPLE, "BIAS");
+	NNSetBias(net, 1);
 		
 	//The caller is required to add the remaining layers.
 	return net;
@@ -47,6 +49,8 @@ void DeleteNN(NeuralNetwork *net)
 		free( net->Layers[li]->Neurons ); //Delete Neuron Array
 		free( net->Layers[li] ); // Delete Layer
 	}
+	
+	DeleteNeuron(net->bias);
 	free(net); // Delete Neural Network.			
 }
 
@@ -79,6 +83,11 @@ Neuron *NNCreateNeuronInLayer(NeuralNetwork *net, char *name, int layer, NEURONS
 	return NULL;
 }
 
+void NNLinkBias(NeuralNetwork *net, int layer, int index)
+{
+	NAddInput(net->Layers[layer]->Neurons[index], net->bias);	
+}
+
 void NNLink(NeuralNetwork *net, int fromLayer, int fromIndex, int toLayer, int toIndex)
 {
 	NAddInput(net->Layers[toLayer]->Neurons[toIndex], net->Layers[fromLayer]->Neurons[fromIndex]);
@@ -88,12 +97,18 @@ void NNSetInput(NeuralNetwork *net, int index, float x)
 {
 	if (index >= net->Layers[0]->count )
 	{
-		printf("Index out of range in SetInput!\n");
+		printf("Index out of range in NNSetInput: %i\n", index);
 		return;
 	}
 	
 	Neuron *inpN = (Neuron *)net->Layers[0]->Neurons[index];	
 	SimpleNeuronSetInput( inpN, x );
+}
+
+void NNSetBias(NeuralNetwork *net, float biasVal)
+{
+	SimpleNeuronSetInput(net->bias, biasVal);
+	ForwardPropogate(net->bias); //Propagate 1 to the output.
 }
 
 void NNForwardPropagation(NeuralNetwork *net)
@@ -144,6 +159,74 @@ void NNCreateSimpleOutputLayer(NeuralNetwork *net)
 	}
 }
 
+// Creates a fully connected neural network, with X0 as a bias (tied to every neuron on every layer)
+void NNCreateFullyConnected(NeuralNetwork *net)
+{
+	Neuron *n;
+	char name[50];
+	int i,j, k, ol, li;
+	
+	NNCreateSimpleInputLayer(net);
+	NNCreateSimpleOutputLayer(net);
+	//Create all the in-between layers
+	
+	//L1, which will be the standard input layer.
+	for (i = 0; i < net->Layers[1]->count; i++)
+	{
+		sprintf(name, "IN%i", i);
+		n = NewNeuron(LMSPERCEPTRON, name);
+		n->layer = 1;
+		n->index = i;
+		net->Layers[1]->Neurons[i] = n;
+		
+		// Link in both the bias and our corresponding input.
+		// Link in each layer 0. These are 1 to 1.
+		NNLinkBias(net, 1, i);
+		NNLink(net, 0, i, 1, i);		
+	}
+	
+	// This is the last non-simple layer.
+	li = net->count - 2; //Our output layer (simple)
+		
+	// Create / link all neurons from layer 2 to our last hidden layer
+	for (i = 2; i < li; i++)
+	{
+		for (j = 0; j < net->Layers[i]->count; j++)
+		{
+			sprintf(name, "H%i.%i", i,j);
+			n = NewNeuron(LMSPERCEPTRON, name);
+			n->layer = i;
+			n->index = j;
+			net->Layers[i]->Neurons[j] = n;
+			
+			//Link Bias
+			NNLinkBias(net, i, j);
+			// Link up every neuron in previous layer.
+			for (k = 0; k < net->Layers[i - 1]->count; k++)
+				NNLink(net, i - 1, k, i, j);
+		}
+	}
+	
+	// link our non-simple output layer to our simple output layer.
+	for (i = 0; i < net->Layers[li]->count; i++)
+	{
+		sprintf(name, "OUT%i", i);
+		n = NewNeuron(LMSPERCEPTRON, name);
+		n->layer = li;
+		n->index = i;
+		net->Layers[li]->Neurons[i] = n;
+		
+		// Link in both the bias and our corresponding input.
+		// Link in each layer 0. These are 1 to 1.
+		NNLinkBias(net, li, i); // Bias
+		NNLink(net, li, i, li + 1, i); //To our Simple Output Layer
+		
+		//Link each neuron in our last hidden layer to this one.
+		for (k = 0; k < net->Layers[li - 1]->count; k++)
+			NNLink(net, li - 1, k, li, i);
+	}
+}
+
 Neuron *NNGetNeuron(NeuralNetwork *net, int layerIndex, int nodeIndex)
 {
 	return net->Layers[layerIndex]->Neurons[nodeIndex];
@@ -157,6 +240,11 @@ int NNGetLayerCount(NeuralNetwork *net)
 int NNGetNeuronCount(NeuralNetwork *net, int layerIndex)
 {
 	return net->Layers[layerIndex]->count;
+}
+
+int NNGetNeuronInputCount(NeuralNetwork *net, int layer, int node)
+{
+	return GetInputNeuronCount(net->Layers[layer]->Neurons[node]);
 }
 
 void NNGetOutputs(NeuralNetwork *net, float Buffer[])
