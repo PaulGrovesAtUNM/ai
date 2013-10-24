@@ -50,10 +50,10 @@ void initSampIndex(int *si, int mode)
 		}		
 	}
 			
-	if (mode == 1) //Random
+	if (mode == 2) //Random
 	{
 		for (i = 0; i < 800; i++)
-			si[i] = 8;
+			si[i] = i;
 		// Now randomize it.
 		for (i = 0; i < 4000; i++)
 		{
@@ -66,25 +66,22 @@ void initSampIndex(int *si, int mode)
 	}	
 }
 
-NeuralNetwork *setupNN(int np1,int np2,int wt,float eta0,float tau)
+NeuralNetwork *setupNN(int np1,int np2,float n1, float n2, float n3, int wt)
 {
 	NeuralNetwork *myNN;
 	int li, ni, ii; //layer index, neuron index, input index
-	int layers[6] = {2, 2, 0, 0, 4, 4}; //We get 2 extra layers (simple), and a bias in the input.
+	int layers[6] = {2, 0, 0, 4, 4}; //We get 1 extra layer (simple), and a bias in the input.
 	
+	layers[1] = np1;
 	if (np2 == 0)
 	{
-		layers[2] = np1; // hidden
-		layers[3] = 4;   // non-simple output
-		layers[4] = 4;  // simple output.
-		
-		myNN = CreateNN(layers, 5);		
+		layers[2] = 4;   // non-simple output		
+		myNN = CreateNN(layers, 4);
 	}
 	else 
 	{
-		layers[2] = np1;
-		layers[3] = np2;
-		myNN = CreateNN(layers, 6);
+		layers[2] = np2;
+		myNN = CreateNN(layers, 5);
 	}
 	
 	NNCreateFullyConnected(myNN);
@@ -102,15 +99,22 @@ NeuralNetwork *setupNN(int np1,int np2,int wt,float eta0,float tau)
 			}
 	
 				
-	NNSetLayerEta(myNN, 1, eta0, tau);
-	NNSetLayerEta(myNN, 2, eta0, tau); //Won't hurt anything to set output layer.
-	NNSetLayerEta(myNN, 3, eta0, tau);
-	NNSetLayerEta(myNN, 4, eta0, tau);
+	NNSetLayerEta(myNN, 1, n1, 0);
+	if ( np2 != 0 )
+	{
+		NNSetLayerEta(myNN, 2, n2, 0); 
+		NNSetLayerEta(myNN, 3, n3, 0);
+	}
+	else
+	{
+		NNSetLayerEta(myNN, 2, n3, 0); 
+	}
+	
 	
 	return myNN;
 }
 
-float cycle(NeuralNetwork *myNN, BackProp *bp, struct _samp s, float *d, float alpha,int epoch)
+float cycle(NeuralNetwork *myNN, struct _samp s, float *d)
 {
 	float outs[4]; //output buffer.
 	int i;
@@ -121,13 +125,28 @@ float cycle(NeuralNetwork *myNN, BackProp *bp, struct _samp s, float *d, float a
 	NNForwardPropagation(myNN);
 	NNGetOutputs(myNN, outs);
 		
-	printf("%i: %f[%f], %f[%f], %f[%f], %f[%f]\n", epoch + 1, outs[0], d[0], outs[1], d[1], outs[2], d[2], outs[3], d[3]);		
+	// printf("%i: %f[%f], %f[%f], %f[%f], %f[%f]\n", epoch + 1, outs[0], d[0], outs[1], d[1], outs[2], d[2], outs[3], d[3]);		
 	for (i = 0; i < 4; i++)				
 		errSqrd += (d[i] - outs[i]) * (d[i] - outs[i]);
 	
-	BPApply(bp, 0, epoch + 1, d);
-	
 	return errSqrd;
+}
+
+int validCode(float *actual, int *encoding)
+{
+	int j;
+	
+	for (j = 0; j < 4; j++)
+	{
+		if (actual[j] < 0)
+			actual[j] = 0;
+		else 
+			actual[j] = 1;
+		if (actual[j] != encoding[j])
+			return 0; //False
+	}
+	// We have a valid encoding.
+	return 1; //Proper
 }
 
 // Tests:
@@ -139,8 +158,11 @@ float cycle(NeuralNetwork *myNN, BackProp *bp, struct _samp s, float *d, float a
 //  alpha range from .0001 to .1 				    // 4
 //  Randomized: None, Round Robin, Full Shuffle     // 3
 //  									Total:12672 Runs
-void testNN(FILE *fp, struct _samp *trn, struct _samp *tst, int nodesPer1, int nodesPer2, int weightTypes, float eta0, float tau, float alpha, int sampMode)
+
+
+void testNN(FILE *tfp, struct _samp *trn, struct _samp *tst, int nodesPer1, int nodesPer2, float n1, float n2, float n3, int weightTypes, int sampMode)
 {	
+	FILE *fp;
 	NeuralNetwork *myNN;
 	BackProp *bp;
 		
@@ -148,52 +170,213 @@ void testNN(FILE *fp, struct _samp *trn, struct _samp *tst, int nodesPer1, int n
 	
 	float testRMS, trainRMS;
 	int testErrs, trainErrs;
+	float *d;
 	
 	int si[800]; 	
 	
 	int classEncode[][4] = {{99, 99, 99, 99}, {1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}; //Encoding for classes	
 	float desired[][4] = {{99, 99, 99, 99}, {1.5, -1.5, -1.5, -1.5}, {-1.5, 1.5, -1.5, -1.5}, {-1.5, -1.5, 1.5, -1.5}, {-1.5, -1.5, -1.5, 1.5}}; //tanh range.
+	float outs[4];
 	
-	int i;
+	char fname[50]; // = {"2x2_01_001_0001_W0_InOrder.txt", "2x2_01_001_0001_W1_InOrder.t
+	
+	char *sorders[3] = {"InOrder","RROrder","RandOrder"};
+	char *wsel[3] = {"1",".1","rnd"};
+	
+	float runningAvg[50];	
+	float avgErr = 10000;
+	
+	int i,j;
+	int sindex;
+	int c;
+	
+	sprintf(fname,"%ix%i_%f_%f_%f_W%s_%s.txt", nodesPer1, nodesPer2, n1, n2, n3, wsel[weightTypes], sorders[sampMode]);
+	printf("Starting: %s\n",fname);
+	fp = fopen(fname,"w");								
+	
 		
-	myNN = setupNN(nodesPer1, nodesPer2, weightTypes, eta0, tau);
+	myNN = setupNN(nodesPer1, nodesPer2, n1, n2, n3, weightTypes);
 	bp = BPInit(myNN);
 	
 	
 	initSampIndex(si, sampMode);
 	
 	// We are now set. 
-	// Run until the rmsError < 2, or 200000 epoch.
+	// Run until the rmsError < 2, or 500000 epoch.
 	
 	trainRMS = 1000;
-	while (epoch < 20000 && trainRMS > 2)
+	trainErrs = 1000; 
+	while (epoch < 100000 && fabs(avgErr - trainRMS) > .0001)
 	{
+		testRMS = 0;
+		trainRMS = 0;
+		testErrs = 0;
+		trainErrs = 0;
+		if ( sampMode == 2)
+			initSampIndex(si, sampMode);
+		for (i = 0; i < 800; i++)
+		{			
+			sindex = si[i];
+			c = trn[ sindex ].c;
+			
+			d = desired[ trn[ sindex ].c ];
+			trainRMS += cycle(myNN, trn[ sindex ], d);			
+			BPApply(bp, 0, epoch, d);
+			NNGetOutputs(myNN, outs);
+			if ( !validCode(outs, classEncode[ c ] ) )
+				trainErrs++;							
+		}
+		
 		for (i = 0; i < 800; i++)
 		{
-			trainRMS += cycle(myNN, bp, tst[ si[i] ], desired[ tst[ si[i]].c ], alpha, epoch);
-			testRMS  += cycle(myNN, bp, trn[ si[i] ], desired[ trn[ si[i]].c ], alpha, epoch);
+			sindex = si[i];
+			c = tst[ sindex ].c;
+			d = desired[ c ];					
+			testRMS  += cycle(myNN, tst[ sindex ], d);
+			NNGetOutputs(myNN, outs);
+			if ( !validCode(outs, classEncode[ c ] ) )
+				testErrs++;						
 		}
+
 		trainRMS = sqrt(trainRMS);
 		testRMS = sqrt(testRMS);
-		epoch++;
-		printf("%i:%f	%f\n", epoch, trainRMS, testRMS);
 		
-		if ( sampMode == 1)
-			initSampIndex(si, sampMode);
+		runningAvg[epoch % 50] = trainRMS;
+		if (epoch > 2000 )
+		{
+			avgErr = 0;		
+			for (i = 0; i < 50; i++)
+				avgErr += runningAvg[i];
+			avgErr = avgErr / 50.0;			
+		}
+				
+		epoch++;
+		fprintf(fp, "%i	%9.9f	%i	%9.9f	%i\n", epoch, trainRMS, trainErrs, testRMS, testErrs);
+		if (epoch % 1000 == 0)
+			printf("%i	%9.9f	%i	%9.9f	%i\n", epoch, trainRMS, trainErrs, testRMS, testErrs);
+		//getchar();
 	}		
+	fprintf(tfp,"%i	%i	%f	%f	%f %s	%s	%f	%i	%f	%i\n", nodesPer1, nodesPer2, n1, n2, n3, wsel[weightTypes], sorders[sampMode], trainRMS, trainErrs, testRMS,testErrs);
+	
+	fclose(fp);
+	DeleteNN(myNN);
+	BPDelete(bp);
 }
 
 int main(int argc, char **argv)
-{		
-	FILE *fp = NULL;
+{			
 	
 	struct _samp trn[800]; //training data
 	struct _samp tst[800]; //testing data
 
 	loadData("TrainingData.txt", trn);
 	loadData("TestingData.txt", tst);
+
+	FILE *fp = fopen("table.txt","w");
+	fprintf(fp, "#h1	#h2	eta1	eta2	eta3	weights	selection	TrainRMS	TrainErrs	TestRMS	TestErrs\n");
 	
-	testNN(fp, trn, tst, 5, 5, 0, .1, 100000, 0, 0);
+	// Single Hidden, Vary # in Hidden	 3 times
+	testNN(fp, trn, tst, 2,  0, .01,0,.001, 2, 2);	
+	testNN(fp, trn, tst, 20, 0, .01,0,.001, 2, 2);
+	testNN(fp, trn, tst, 50, 0, .01,0,.001, 2, 2);
+
+	// Different weights
+	testNN(fp, trn, tst,  2, 0, .01,0,.001, 0, 2);
+	testNN(fp, trn, tst, 20, 0, .01,0,.001, 0, 2);
+	testNN(fp, trn, tst, 50, 0, .01,0,.001, 0, 2);
+	
+	// Different weights
+	testNN(fp, trn, tst, 2, 0,  .01,0,.001, 1, 2);
+	testNN(fp, trn, tst, 20, 0, .01,0,.001, 1, 2);
+	testNN(fp, trn, tst, 50, 0, .01,0,.001, 1, 2);
+		
+	// 2 Hidden Layers
+// Single Hidden, Vary # in Hidden	 3 times
+	testNN(fp, trn, tst, 2,  2, .01,.005,.001, 2, 2);	
+	testNN(fp, trn, tst, 20, 5, .01,.005,.001, 2, 2);
+	testNN(fp, trn, tst, 50, 10, .01,.005,.001, 2, 2);
+
+	// Different weights
+	testNN(fp, trn, tst,  2, 2, .01,.005,.001, 0, 2);
+	testNN(fp, trn, tst, 20, 5, .01,.005,.001, 0, 2);
+	testNN(fp, trn, tst, 50, 10, .01,.005,.001, 0, 2);
+	
+	// Different weights
+	testNN(fp, trn, tst, 2,  2,  .01,.005,.001, 1, 2);
+	testNN(fp, trn, tst, 20, 5, .01,.005,.001, 1, 2);
+	testNN(fp, trn, tst, 50, 10, .01,.005,.001, 1, 2);
+	
+	// Pard d1
+	// Different ordering
+	// Single Hidden, Vary # in Hidden	 3 times
+	testNN(fp, trn, tst, 2,  0, .01,0,.001, 2, 1);	
+	testNN(fp, trn, tst, 20, 0, .01,0,.001, 2, 1);
+	testNN(fp, trn, tst, 50, 0, .01,0,.001, 2, 1);
+
+	// Different weights
+	testNN(fp, trn, tst,  2, 0, .01,0,.001, 0, 1);
+	testNN(fp, trn, tst, 20, 0, .01,0,.001, 0, 1);
+	testNN(fp, trn, tst, 50, 0, .01,0,.001, 0, 1);
+	
+	// Different weights
+	testNN(fp, trn, tst, 2, 0,  .01,0,.001, 1, 1);
+	testNN(fp, trn, tst, 20, 0, .01,0,.001, 1, 1);
+	testNN(fp, trn, tst, 50, 0, .01,0,.001, 1, 1);
+		
+	// 2 Hidden Layers
+// Single Hidden, Vary # in Hidden	 3 times
+	testNN(fp, trn, tst, 2,  2, .01,.005,.001, 2, 1);	
+	testNN(fp, trn, tst, 20, 5, .01,.005,.001, 2, 1);
+	testNN(fp, trn, tst, 50, 10, .01,.005,.001, 2, 1);
+
+	// Different weights
+	testNN(fp, trn, tst,  2, 2, .01,.005,.001, 0, 1);
+	testNN(fp, trn, tst, 20, 5, .01,.005,.001, 0, 1);
+	testNN(fp, trn, tst, 50, 10, .01,.005,.001, 0, 1);
+	
+	// Different weights
+	testNN(fp, trn, tst, 2,  2,  .01,.005,.001, 1, 1);
+	testNN(fp, trn, tst, 20, 5, .01,.005,.001, 1, 1);
+	testNN(fp, trn, tst, 50, 10, .01,.005,.001, 1, 1);
+	
+	//Pard d2
+	// Different ordering
+	// Pard d1
+	// Different ordering
+	// Single Hidden, Vary # in Hidden	 3 times
+	testNN(fp, trn, tst, 2,  0, .01,0,.001, 2, 0);	
+	testNN(fp, trn, tst, 20, 0, .01,0,.001, 2, 0);
+	testNN(fp, trn, tst, 50, 0, .01,0,.001, 2, 0);
+
+	// Different weights
+	testNN(fp, trn, tst,  2, 0, .01,.005,.001, 0, 0);
+	testNN(fp, trn, tst, 20, 0, .01,.005,.001, 0, 0);
+	testNN(fp, trn, tst, 50, 0, .01,.005,.001, 0, 0);
+	
+	// Different weights
+	testNN(fp, trn, tst, 2, 0,  .01,.005,.001, 1, 0);
+	testNN(fp, trn, tst, 20, 0, .01,.005,.001, 1, 0);
+	testNN(fp, trn, tst, 50, 0, .01,.005,.001, 1, 0);
+		
+	// 2 Hidden Layers
+// Single Hidden, Vary # in Hidden	 3 times
+	testNN(fp, trn, tst, 2,  2, .01,.005,.001, 2, 0);	
+	testNN(fp, trn, tst, 20, 5, .01,.005,.001, 2, 0);
+	testNN(fp, trn, tst, 50, 10, .01,.005,.001, 2, 0);
+
+	// Different weights
+	testNN(fp, trn, tst,  2, 2, .01,.005,.001, 0, 0);
+	testNN(fp, trn, tst, 20, 5, .01,.005,.001, 0, 0);
+	testNN(fp, trn, tst, 50, 10, .01,.005,.001, 0, 0);
+	
+	// Different weights
+	testNN(fp, trn, tst, 2,  2,  .01,.005,.001, 1, 0);
+	testNN(fp, trn, tst, 20, 5, .01,.005,.001, 1, 0);
+	testNN(fp, trn, tst, 50, 10, .01,.005,.001, 1, 0);
+	
+
+	fclose(fp);
+
 
 	printf("All neurons deleted.\n");		
 	getchar();

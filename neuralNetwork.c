@@ -170,26 +170,11 @@ void NNCreateFullyConnected(NeuralNetwork *net)
 	NNCreateSimpleOutputLayer(net);
 	//Create all the in-between layers
 	
-	//L1, which will be the standard input layer.
-	for (i = 0; i < net->Layers[1]->count; i++)
-	{
-		sprintf(name, "IN%i", i);
-		n = NewNeuron(LMSPERCEPTRON, name);
-		n->layer = 1;
-		n->index = i;
-		net->Layers[1]->Neurons[i] = n;
-		
-		// Link in both the bias and our corresponding input.
-		// Link in each layer 0. These are 1 to 1.
-		NNLinkBias(net, 1, i);
-		NNLink(net, 0, i, 1, i);		
-	}
-	
 	// This is the last non-simple layer.
 	li = net->count - 2; //Our output layer (simple)
 		
 	// Create / link all neurons from layer 2 to our last hidden layer
-	for (i = 2; i < li; i++)
+	for (i = 1; i < li; i++)
 	{
 		for (j = 0; j < net->Layers[i]->count; j++)
 		{

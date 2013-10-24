@@ -35,9 +35,9 @@ BackProp *BPInit(NeuralNetwork *net)
 				bp->deltaW[li][ni] = NULL;
 			else
 			{
-				bp->deltaW[li][ni] = (float *)malloc(sizeof(float) * numC);
-				for (grr = 0; grr < numC; grr++)
-					bp->deltaW[li][ni][grr] = (float)numC;
+				//bp->deltaW[li][ni] = (float *)malloc(sizeof(float) * numC);
+				//for (grr = 0; grr < numC; grr++)
+					//bp->deltaW[li][ni][grr] = (float)numC;
 			}
 		}
 	}
@@ -45,7 +45,7 @@ BackProp *BPInit(NeuralNetwork *net)
 	bp->net = net;	
 	
 	BPResetLocalDeltas(bp);
-	BPResetWeightDeltas(bp);
+	//BPResetWeightDeltas(bp);
 	
 	//BPPrintDeltas(bp);
 		
@@ -82,13 +82,13 @@ void BPDelete(BackProp *bp)
 	for (i = 0; i < bp->net->count; i++)
 	{
 		free(bp->deltas[i]);
-		for (j = 0; j < bp->net->Layers[i]->count; j++)
-			free(bp->deltaW[i][j]);
-		free(bp->deltaW[i]);
+		//for (j = 0; j < bp->net->Layers[i]->count; j++)
+		//	free(bp->deltaW[i][j]);
+		//free(bp->deltaW[i]);
 	}
 	
 	free( bp->deltas );
-	free( bp->deltaW );
+	//free( bp->deltaW );
 	
 	free(bp);
 }
@@ -121,7 +121,7 @@ void BPApply(BackProp *bp, float alpha,int epoch, float *desired)
 	Neuron *n;  //Current Neuron
 	Neuron *in; //Input Neuron
 	float *w; //Weights array for current neuron
-	float yn, localDelta; //An input value;
+	float xi, localDelta; //An input value;
 	int li, ni, ini, ili, ii; //Layer index, Neuron Index, Input Neuron Index, input layer index, input index loop
 	float deltaW = 0;
 		
@@ -131,7 +131,7 @@ void BPApply(BackProp *bp, float alpha,int epoch, float *desired)
 	li = net->count - 2; //Output layer = count - 1, last non-simple neurons = count - 2
 	for (ni = 0; ni < NNGetNeuronCount(net, li); ni++)
 	{		
-		bp->deltas[li][ni] = desired[ni] - NNGetOutput(net, li + 1, ni);
+		bp->deltas[li][ni] = desired[ni] - NNGetOutput(net, li, ni);
 		// printf("Desired: %f		Output: %f		Error: %f\n", desired[ni], NNGetOutput(net, li+1, ni), outputError);
 	}
 		
@@ -153,16 +153,16 @@ void BPApply(BackProp *bp, float alpha,int epoch, float *desired)
 			{				
 				in = GetInputNeuron(n, ii);
 									
-				yn = GetOutput(in);
+				xi = GetOutput(in);
 				ili = GetLayerIndex(in); //Gets the layer index in our neural net
 				ini = GetNeuronIndex(in); //Gets the index in our neural net.
 				
 				// Prop the local error to a input neuron ii 	
-				if (in != net->bias)
-					bp->deltas[ili][ini] += w[ii] * localDelta;				
+				//if (in != net->bias)
+					//bp->deltas[ili][ini] += w[ii] * localDelta;				
 								
-				deltaW = NGetEta(n, epoch) * localDelta * yn + (alpha * bp->deltaW[li][ni][ii]); 
-				bp->deltaW[li][ni][ii] = deltaW;
+				deltaW = NGetEta(n, epoch) * localDelta * xi;// + (alpha * bp->deltaW[li][ni][ii]); // Momentum: pg 170
+				//bp->deltaW[li][ni][ii] = deltaW;
 					
 				// Adjust our intput weight --Wnew = Eta * local delta * input + momentum
 				w[ii] += deltaW; //W = delt * out + momentum

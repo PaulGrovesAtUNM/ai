@@ -128,7 +128,11 @@ void NSetEta(Neuron *n,float eta0,float tao)
 
 float NGetEta(Neuron *n, int epoch)
 {
-	return (n->eta0 / (1 + (epoch / n->tao)));
+	return n->eta0; //Disable scheduling.
+	/*float tao = n->tao;
+	float etaD = 1 + (epoch / tao); 
+	float eta = n->eta0 / etaD;	
+	return eta; // (n->eta0 / (1 + ((float)epoch / n->tao))); */
 }
 
 int GetLayerIndex(Neuron *n)

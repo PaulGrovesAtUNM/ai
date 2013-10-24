@@ -35,8 +35,6 @@ Neuron *lmsPerceptronCreate(Neuron *n)
 
 	n->create = &lmsPerceptronCreate;
 	n->forwardProp = &lmsPerceptronFP;
-	
-	printf("LMS Perceptron created...\n\r");
 
 	return n;
 }
